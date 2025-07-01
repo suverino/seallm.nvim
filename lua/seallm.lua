@@ -54,13 +54,23 @@ end
 function M.make_anthropic_spec_curl_args(opts, prompt, system_prompt)
   local url = opts.url
   local api_key = opts.api_key_name and get_api_key(opts.api_key_name)
+  
+  -- Declare data local to the function with a consistent base definition
   local data = {
     system = system_prompt,
     messages = { { role = 'user', content = prompt } },
     model = opts.model,
     stream = true,
-    max_tokens = 4096,
+    max_tokens = 4096  -- Default value
   }
+  
+  -- Conditionally modify fields based on opts.extended_thinking
+  if opts.extended_thinking then
+    data.max_tokens = 20000
+    data.thinking = { type = 'enabled', budget_tokens = 16000 }
+  end
+  
+  -- Build the curl arguments
   local args = { '-N', '-X', 'POST', '-H', 'Content-Type: application/json', '-d', vim.json.encode(data) }
   if api_key then
     table.insert(args, '-H')
@@ -110,7 +120,7 @@ local function get_prompt(opts)
 end
 
 function M.handle_anthropic_spec_data(data_stream, event_state)
-  if event_state == 'content_block_delta' then
+  if event_state == 'content_block_delta' or event_state == 'extended_thinking_delta' then
     local json = vim.json.decode(data_stream)
     if json.delta and json.delta.text then
       M.write_string_at_cursor(json.delta.text)
@@ -170,7 +180,7 @@ function M.invoke_llm_and_stream_into_editor(opts, make_curl_args_fn, handle_dat
       end
     end,
   })
-
+    
   vim.api.nvim_set_keymap('n', '<Esc>', ':doautocmd User SEAL_LLM_Escape<CR>', { noremap = true, silent = true })
   return active_job
 end
