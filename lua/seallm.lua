@@ -61,7 +61,8 @@ function M.make_anthropic_spec_curl_args(opts, prompt, system_prompt)
     messages = { { role = 'user', content = prompt } },
     model = opts.model,
     stream = true,
-    max_tokens = 4096  -- Default value
+    max_tokens = 4096,  -- Default value
+    tools =  { { type = 'web_search_20250305', name = 'web_search', max_uses = 5 } }
   }
   
   -- Conditionally modify fields based on opts.extended_thinking
